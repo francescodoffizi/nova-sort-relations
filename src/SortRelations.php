@@ -1,32 +1,22 @@
 <?php
 
-namespace LifeOnScreen\SortRelations;
+namespace Joligoms\SortRelations;
 
-use Illuminate\Support\Str;
+use Laravel\Nova\Nova;
 
 /**
  * Trait SortRelations
- * @package LifeOnScreen\SortRelations
+ * Based on https://github.com/newtongamajr/nova-sort-relations/tree/bugfix repository
+ * @package Joligoms\SortRelations
  */
 trait SortRelations
 {
     /**
-     * Get the sortable columns for the resource.
+     * The relations that should be "joined" to the index query, making the fields with relations sortable.
      *
-     * @return array
+     * @var array
      */
-    public static function sortableRelations($query): array
-    {
-        $model = $query->getModel();
-        $return = [];
-        if (static::$sortRelations) {
-            foreach (static::$sortRelations as $relation => $columns) {
-                $relatedKey = $model->{$relation}()->getForeignKeyName();
-                $return[$relatedKey] = ['relation' => $relation, 'columns' => $columns];
-            }
-        }
-        return $return;
-    }
+    public static $sortRelations = [];
 
     /**
      * Apply any applicable orderings to the query.
@@ -38,24 +28,38 @@ trait SortRelations
      */
     protected static function applyRelationOrderings(string $column, string $direction, $query)
     {
-        $sortRelations = static::sortableRelations($query);
+        $sortInformation = static::$sortRelations[$column];
 
-        $model = $query->getModel();
-        $relation = $sortRelations[$column];
-        $related = $model->{$relation['relation']}()->getRelated();
+        $resourceModel = $query->getModel();
+        $relations = explode('.', $sortInformation['relation']);
 
-        $foreignKey =  $model->{$relation['relation']}()->getForeignKeyName();
-        $ownerKey = $model->{$relation['relation']}()->getOwnerKeyName();
+        $segmentModel = $resourceModel;
 
-        $query->select($model->getTable() . '.*');
-        $query->leftJoin($related->getConnection()->getDatabaseName() . '.' . $related->getTable(), $model->qualifyColumn($foreignKey), '=', $related->qualifyColumn($ownerKey));
-        if (is_string($relation['columns'])) {
-            $qualified = $related->qualifyColumn($relation['columns']);
+        foreach ($relations as $key => $segmentRelation) {
+            $segmentModel = $segmentModel->{$segmentRelation}();
+
+            $foreignKey =  method_exists($segmentModel, "getForeignKeyName")
+                ? $segmentModel->getForeignKeyName()
+                : $segmentModel->getForeignPivotKeyName();
+            $ownerKey = $segmentModel->getOwnerKeyName();
+
+            $child = $segmentModel->getChild();
+            $segmentModel = $segmentModel->getModel();
+            $query->leftJoin($segmentModel->getConnection()->getDatabaseName() . '.' . $segmentModel->getTable(), $child->qualifyColumn($foreignKey), '=', $segmentModel->qualifyColumn($ownerKey));
+        } 
+
+        $sortingModel = $segmentModel;
+
+        $sortingTitle = isset($sortInformation['title']) ? $sortInformation['title'] : Nova::resourceForModel($sortingModel)::$title;
+        $query->select($resourceModel->qualifyColumn('*'), $sortingModel->qualifyColumn($sortingTitle).' as '.$column);
+
+        if (is_string($sortInformation['columns'])) {
+            $qualified = $sortingModel->qualifyColumn($sortInformation['columns']);
             $query->orderBy($qualified, $direction);
         }
-        if (is_array($relation['columns'])) {
-            foreach ($relation['columns'] as $orderColumn) {
-                $qualified = $related->qualifyColumn($orderColumn);
+        if (is_array($sortInformation['columns'])) {
+            foreach ($sortInformation['columns'] as $orderColumn) {
+                $qualified = $sortingModel->qualifyColumn($orderColumn);
                 $query->orderBy($qualified, $direction);
             }
         }
@@ -78,11 +82,11 @@ trait SortRelations
                 : $query;
         }
 
-        $sortRelations = static::sortableRelations($query);
+        $sortRelations = static::$sortRelations;
 
         foreach ($orderings as $column => $direction) {
             if (is_null($direction))
-              $direction = 'asc';
+                $direction = 'asc';
             if (array_key_exists($column, $sortRelations)) {
                 $query = self::applyRelationOrderings($column, $direction, $query);
             } else {
