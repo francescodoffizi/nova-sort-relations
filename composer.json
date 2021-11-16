@@ -1,5 +1,5 @@
 {
-  "name": "lifeonscreen/nova-sort-relations",
+  "name": "joligoms/nova-sort-relations",
   "description": "This package improves support for sorting relations in Laravel Nova.",
   "keywords": [
     "laravel",
@@ -9,8 +9,8 @@
   ],
   "authors": [
     {
-      "name": "Jani Cerar",
-      "email": "jani.cerar@lifeonscreen.com"
+      "name": "João Gomes",
+      "email": "jolinharesgomes@gmail.com"
     }
   ],
   "license": "MIT",
@@ -19,7 +19,7 @@
   },
   "autoload": {
     "psr-4": {
-      "LifeOnScreen\\SortRelations\\": "src/"
+      "Joligoms\\SortRelations\\": "src/"
     }
   },
   "config": {
