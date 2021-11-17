@@ -1,4 +1,4 @@
-## LifeOnScreen/nova-sort-relations
+## Joligoms/nova-sort-relations
 
 This package improves support for sorting relations in Laravel Nova.
 
@@ -7,32 +7,38 @@ This package improves support for sorting relations in Laravel Nova.
 Install via composer
 
 ``` bash
-$ composer require lifeonscreen/nova-sort-relations
+$ composer require joligoms/nova-sort-relations
 ```
 
 ## Usage
 
-Include `LifeOnScreen\SortRelations\SortRelations` trait to your class. Define sortable columns in `$sortRelations` array.
+Include `Joligoms\SortRelations\SortRelations` trait to your resource class or in `App\Nova\Resource` if you want all resources to have this feature. Define sortable columns in `$sortRelations` array.
 
 ```php
 
 ...
-use LifeOnScreen\SortRelations\SortRelations;
+use Joligoms\SortRelations\SortRelations;
 ...
 
-class Product extends Resource
+class Post extends Resource
 {
     public static $sortRelations = [
-        // Order product relation by product id...
-        'product'               => 'id',
-        // overriding user relation sorting
-        'user'         => [
-            // sorting multiple columns
-            'name',
-            'surname',
-        ],
-        // overriding company relation sorting
-        'company'          => 'name',
+        'user' => /* 
+                      The attribute specified in the field, for example: 
+                                              ˅˅˅˅
+                      Text::make(__('User'), 'user', function () {
+                          return $this->model()->user->username;
+                      });
+                   */
+            [
+                'relation' => 'user', // The relation from the current resource's model.
+                'title' => 'username', // (Optional) The relation's column that should be selected in the indexQuery. If not specified, it will use the resource's title property.
+                'columns' => 'username' // The columns that should be ordered in the query. It can be a string or array.
+            ],
+        'company' => [
+            'relation' => 'user.company', // Dot notation can be specified when the relation goes through multiple relations.
+            'columns' => 'name'
+        ]
     ];
     
     public static function indexQuery(NovaRequest $request, $query)
@@ -51,14 +57,17 @@ If you discover any security-related issues, please email the author instead of 
 
 ## Credits 
 - [Jani Cerar](https://github.com/janicerar)
+- [Adam Anderly](https://github.com/anderly)
+- [LifeOnScreen](https://github.com/LifeOnScreen)
+- [Newton Evangelista da Gama Junior](https://github.com/newtongamajr)
 
 ## License
 
 MIT license. Please see the [license file](docs/license.md) for more information.
 
-[ico-version]: https://img.shields.io/packagist/v/lifeonscreen/nova-sort-relations.svg?style=flat-square
+<!-- [ico-version]: https://img.shields.io/packagist/v/lifeonscreen/nova-sort-relations.svg?style=flat-square
 [ico-downloads]: https://img.shields.io/packagist/dt/lifeonscreen/nova-sort-relations.svg?style=flat-square
 
 [link-packagist]: https://packagist.org/packages/lifeonscreen/nova-sort-relations
 [link-downloads]: https://packagist.org/packages/lifeonscreen/nova-sort-relations
-[link-author]: https://github.com/LifeOnScreen
+[link-author]: https://github.com/joligoms -->
